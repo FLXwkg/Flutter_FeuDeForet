@@ -1,50 +1,85 @@
-//import 'package:grid_world/grid_world.dart';
 import 'dart:math';
+
+// main
 void main() {
   // Créer une grille représentant la forêt
-  final forest = Forest(100,100);
-
+  final forest = Forest(3,3, 5);
+  
   // Initialiser la forêt avec des arbres sains et quelques arbres en feu
   // Vous pouvez ajuster cela en fonction de la taille de votre grille
-  forest.initializeForest();
+  forest.initializeForest(1, 0.9);
 
   // Effectuer la simulation pas à pas jusqu'à ce que les conditions d'arrêt soient remplies
-  while (!forest.simulationComplete(forest)) {
+  while (!forest.simulationComplete()) {
     // Mettre à jour l'état de la forêt pour une étape de simulation
     forest.updateForest();
 
     // Afficher la grille mise à jour
-    print(forest.grid);
+    print(forest.getString());
   }
 }
 
-// Functions
-
-
-
 // Classes
-
-
-
 class Forest {
   int rows;
   int columns;
+  int maxIterations;
+  int currentIteration = 0;
   late List<List<ForestCell>> grid;
 
-  Forest(this.rows, this.columns);
+  Forest(this.rows, this.columns, this.maxIterations);
 
-  void initializeForest() {
+  ForestCell getCell(int row, int col) {
+    return grid[row][col];
+  }
+
+  List<ForestCell> getNeighbors(row, col){
+    List<ForestCell> neighbors = [];
+
+    for (int i = row - 1; i <= row + 1; i++) {
+        for (int j = col - 1; j <= col + 1; j++) {
+            // Skip the cell itself
+            if (i == row && j == col) {
+                continue;
+            }
+            // Check if the neighboring cell is within the grid bounds
+            if (i >= 0 && i < rows && j >= 0 && j < columns) {
+                neighbors.add(getCell(i, j));
+            }
+        }
+    }
+    return neighbors;
+  }
+
+  void initializeForest(int fireCell, num emptyRatio) {
+    int totalCells = rows * columns;
+    double fractionFireCell = fireCell / totalCells;
+
     grid = List.generate(
       rows,
       (i) => List.generate(columns, (j) {
-        // Initialisez chaque cellule de la grille avec un état initial aléatoire (inerte ou inflammable)
-        return ForestCell(Random().nextBool() ? ForestCellState.inflammable : ForestCellState.inerte);
+        bool isFlammable = Random().nextDouble() < emptyRatio;
+        if (isFlammable){
+          if(Random().nextDouble() < fractionFireCell){
+            return ForestCell(ForestCellState.enFeu);
+          } else {
+            return ForestCell(ForestCellState.inflammable);
+          }
+        } else {
+          return ForestCell(ForestCellState.vide);
+        }
       }),
     );
   }
 
   void updateForest() {
-    List<List<ForestCell>> newGrid = List.generate(rows, (index) => List.filled(columns, ForestCell(ForestCellState.inerte)));
+    List<List<ForestCell>> newGrid = List.generate(rows, (i) {
+      return List.generate(columns, (j) {
+        // Create a new ForestCell with the same state as the corresponding cell in the original grid
+        return ForestCell(grid[i][j].state);
+      });
+    });
+
 
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < columns; j++) {
@@ -52,17 +87,9 @@ class Forest {
 
         if (currentCell.state == ForestCellState.enFeu) {
           // Si la cellule actuelle est en feu, propagez le feu aux cellules adjacentes
-          spreadFire(i, j, newGrid);
-        } else if (currentCell.state == ForestCellState.inflammable) {
-          // Si la cellule actuelle est inflammable, elle peut devenir en feu avec une probabilité de 0.3
-          if (Random().nextDouble() <= 0.3) {
-            newGrid[i][j] = ForestCell(ForestCellState.enFeu);
-          } else {
-            // Sinon, la cellule reste inflammable
-            newGrid[i][j] = currentCell;
-          }
+          spreadFire4Directions(i, j, newGrid);
         } else {
-          // Si la cellule est inerte, elle ne peut pas devenir en feu
+          // Si la cellule est vide, elle ne peut pas devenir en feu
           newGrid[i][j] = currentCell;
         }
       }
@@ -70,53 +97,86 @@ class Forest {
 
     // Remplacez la grille actuelle par la nouvelle grille mise à jour
     grid = newGrid;
+    currentIteration++;
   }
 
-  void spreadFire(int i, int j, List<List<ForestCell>> newGrid) {
-    // Propagation vers le haut
-    if (i > 0) {
-      if (grid[i - 1][j].state == ForestCellState.inflammable && Random().nextDouble() <= 0.6) {
-        newGrid[i - 1][j] = ForestCell(ForestCellState.enFeu);
-      } else if (grid[i - 1][j].state != ForestCellState.brulee) {
-        newGrid[i - 1][j] = ForestCell(ForestCellState.brulee);
-      }
-    }
-    // Propagation vers le bas
-    if (i < rows - 1) {
-      if (grid[i + 1][j].state == ForestCellState.inflammable && Random().nextDouble() <= 0.6) {
-        newGrid[i + 1][j] = ForestCell(ForestCellState.enFeu);
-      } else if (grid[i + 1][j].state != ForestCellState.brulee) {
-        newGrid[i + 1][j] = ForestCell(ForestCellState.brulee);
-      }
-    }
-    // Propagation vers la gauche
-    if (j > 0) {
-      if (grid[i][j - 1].state == ForestCellState.inflammable && Random().nextDouble() <= 0.6) {
-        newGrid[i][j - 1] = ForestCell(ForestCellState.enFeu);
-      } else if (grid[i][j - 1].state != ForestCellState.brulee) {
-        newGrid[i][j - 1] = ForestCell(ForestCellState.brulee);
-      }
-    }
-    // Propagation vers la droite
-    if (j < columns - 1) {
-      if (grid[i][j + 1].state == ForestCellState.inflammable && Random().nextDouble() <= 0.6) {
-        newGrid[i][j + 1] = ForestCell(ForestCellState.enFeu);
-      } else if (grid[i][j + 1].state != ForestCellState.brulee) {
-        newGrid[i][j + 1] = ForestCell(ForestCellState.brulee);
+  void spreadFire4Directions(int i, int j, List<List<ForestCell>> newGrid) {
+    spreadFire(i, j, newGrid, -1, 0); // Up
+    spreadFire(i, j, newGrid, 1, 0); // Down
+    spreadFire(i, j, newGrid, 0, -1); // Left
+    spreadFire(i, j, newGrid, 0, 1); // Right
+
+  }
+
+  void spreadFire(int i, int j, List<List<ForestCell>> newGrid, int dx, int dy) {
+    int newRow = i + dx;
+    int newColumn = j + dy;
+
+    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns) {
+      ForestCell currentCell = getCell(i, j);
+      ForestCellState currentState = currentCell.state;
+      List<ForestCell> neighbors = getNeighbors(i, j);
+
+      // Transition probabilities based on the current state
+      double fireChance = 0.6;
+      double extinguishedChance = 0.005;
+
+      if(currentState != ForestCellState.vide) {
+        for (var neighbor in neighbors) {
+          ForestCellState neighborState = neighbor.state;
+          if(neighborState != ForestCellState.vide) {
+            double randomValue = Random().nextDouble();
+
+            // Determine the new state based on the current state and transition probabilities
+            ForestCellState newState;
+            if (neighborState == ForestCellState.inflammable && randomValue <= fireChance) {
+              newState = ForestCellState.enFeu;
+            } else if (neighborState == ForestCellState.enFeu && randomValue <= fireChance) {
+              newState = ForestCellState.enFeuAvance;
+            } else if (neighborState == ForestCellState.enFeuAvance && randomValue <= fireChance) {
+              newState = ForestCellState.brulee;
+            } else if (neighborState == ForestCellState.brulee && randomValue <= extinguishedChance) {
+              newState = ForestCellState.eteint;
+            } else {
+              // No transition, keep the current state
+              newState = neighborState;
+            }
+
+            // Update the new grid with the determined state
+            newGrid[newRow][newColumn] = ForestCell(newState);
+          }
+        }
       }
     }
   }
+
+
+
+
 
   bool simulationComplete() {
-    // À implémenter : Déterminer si les conditions d'arrêt de la simulation sont remplies
-    return false;
+    return currentIteration >= maxIterations;
+  }
+
+  String getString() {
+    StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < columns; j++) {
+        buffer.write(grid[i][j].getString());
+      }
+      buffer.writeln(); // Saut de ligne à la fin de chaque ligne
+    }
+    return buffer.toString();
   }
 }
 
 enum ForestCellState {
+  vide,
   inflammable,
   enFeu,
+  enFeuAvance,
   brulee,
+  eteint,
   inerte,
 }
 
@@ -127,5 +187,24 @@ class ForestCell {
 
   ForestCellState getForestState() {
     return state;
+  }
+
+  String getString(){
+    switch (state) {
+      case ForestCellState.vide:
+        return 'v';
+      case ForestCellState.inflammable:
+        return 'i';
+      case ForestCellState.enFeu:
+        return 'e';
+      case ForestCellState.enFeuAvance:
+        return 'a';
+      case ForestCellState.brulee:
+        return 'b';
+      case ForestCellState.eteint:
+        return 'z';
+      case ForestCellState.inerte:
+        return 'n';
+    }
   }
 }
