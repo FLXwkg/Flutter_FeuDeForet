@@ -9,6 +9,7 @@ class ForestFireApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Simulation de Feu de Forêt',
       home: ForestFireHomePage(),
     );
   }
@@ -25,6 +26,7 @@ class _ForestFireHomePageState extends State<ForestFireHomePage> {
   String windDirection = 'Nord';
   double humidity = 1.0;
   double emptyRatio = 0.1;
+  double emptyText = 0.0;
   int maxIterations = 50;
   int currentIteration = 0;
   int autoIterations = 0;
@@ -41,6 +43,13 @@ class _ForestFireHomePageState extends State<ForestFireHomePage> {
   }
 
   void initializeGrid() {
+    switch(emptyText){
+      case 0.0: emptyRatio = 0;break;
+      case 1.0: emptyRatio = 0.05;break;
+      case 2.0: emptyRatio = 0.2;break;
+      case 3.0: emptyRatio = 0.5;break;
+      default: emptyRatio = 0.1;break;
+    }
     grid = List.generate(
       gridSize,
       (i) => List.generate(gridSize, (j) {
@@ -159,9 +168,17 @@ class _ForestFireHomePageState extends State<ForestFireHomePage> {
     }
   }
 
-  double applyWindEffect(
-      int i, int j, List<ForestCell> neighbors, int fireNeighborsCount) {
-    double newFireChance = (humidity / neighbors.length) * fireNeighborsCount;
+  double applyWindEffect( int i, int j, List<ForestCell> neighbors, int fireNeighborsCount) {
+    double realHumidity = 0.9;
+
+    switch(humidity){
+      case 0.0: realHumidity = 0.9;
+      case 1.0: realHumidity = 0.6;
+      case 2.0: realHumidity = 0.3;
+      case 3.0: realHumidity = 0.1;
+    }
+
+    double newFireChance = (realHumidity / neighbors.length) * fireNeighborsCount;
 
     switch (windDirection) {
       case 'Nord':
@@ -378,7 +395,7 @@ Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
       title: const Text(
-        'Simulation d\'Incendie de Forêt',
+        'Simulation de Feu de Forêt',
         style: TextStyle(
             fontFamily: 'RobotoMono',
             fontWeight: FontWeight.bold,
@@ -426,15 +443,19 @@ Widget build(BuildContext context) {
         Expanded(
           flex: 1,
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(4.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Grid Size Input
-                const Text(
-                  'Taille de la Grille:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                const Row(
+                  children: [
+                    Icon(Icons.apps),
+                    SizedBox(width: 8),
+                    Text('Taille de la Grille:'),
+                  ],
                 ),
+                
                 Slider(
                   value: gridSize.toDouble(),
                   min: 16,
@@ -443,6 +464,26 @@ Widget build(BuildContext context) {
                   label: gridSize.toString(),
                   onChanged: (double value) {
                     updateGridSize(value.toInt());
+                  },
+                ),
+                const Row(
+                  children: [
+                    Icon(Icons.image),
+                    SizedBox(width: 8),
+                    Text('Type de terrain:'),
+                  ],
+                ),
+                Slider(
+                  value: emptyText,
+                  min: 0,
+                  max: 3,
+                  divisions: 3,
+                  label: emptyText.toString(),
+                  onChanged: (double value) {
+                    setState(() {
+                      emptyText = value;
+                      initializeGrid();
+                    });
                   },
                 ),
                 // Wind Strength Input
@@ -508,9 +549,9 @@ Widget build(BuildContext context) {
                 ),
                 Slider(
                   value: humidity,
-                  min: 1,
+                  min: 0,
                   max: 3,
-                  divisions: 2,
+                  divisions: 3,
                   label: humidity.toString(),
                   onChanged: (double value) {
                     setState(() {
@@ -542,14 +583,14 @@ Widget build(BuildContext context) {
                 ),
                 // Progress Bar
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(6.0),
                   child: LinearProgressIndicator(
                     value: currentIteration / maxIterations,
                   ),
                 ),
                 // Iteration Counter
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(6.0),
                   child: Text('Iteration: $currentIteration'),
                 ),
                 // Start Button
