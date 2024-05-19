@@ -43,9 +43,6 @@ class Forest {
   int get rows => size;
   int get columns => size;
 
-  ForestCell getCell(int row, int col) {
-    return grid[row][col];
-  }
 
   List<ForestCell> getNeighbors(row, col) {
     List<ForestCell> neighbors = [];
@@ -59,7 +56,7 @@ class Forest {
         }
         // Check if the neighboring cell is within the grid bounds
         if (i >= 0 && i < rows && j >= 0 && j < columns) {
-          neighbors.add(getCell(i, j));
+          neighbors.add(grid[i][j]);
         }
       }
     }
@@ -129,7 +126,7 @@ class Forest {
       for (int j = 0; j < columns; j++) {
         updateCell(i, j, newGrid);
         if (grid[i][j].state == ForestCellState.inflammable) {
-          spreadFire8Directions(i, j, newGrid);
+          spreadFire(i, j, newGrid);
         }
       }
     }
@@ -139,7 +136,7 @@ class Forest {
     currentIteration++;
   }
 
-  void spreadFire8Directions(int i, int j, List<List<ForestCell>> newGrid) {
+  void spreadFire(int i, int j, List<List<ForestCell>> newGrid) {
     List<ForestCell> neighbors = getNeighbors(i, j);
     int fireNeighborsCount = 0;
 
