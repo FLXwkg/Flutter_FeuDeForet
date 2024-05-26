@@ -86,6 +86,8 @@ Ces couleurs représentent l'état de chaque cellule dans la grille de simulatio
 Pour toute question ou problème, veuillez ouvrir une issue sur le dépôt GitHub.
 
 ## To-Do List
-[] Ajouter la fonctionnalité de modification d'état(inerte)
-[] Icônes à la place des cases pour une meilleure visualisation
-[] Build vers d'autres plateformes
+
+- [ ] Ajouter la fonctionnalité de modification d'état (inerte)
+- [ ] Utiliser des icônes à la place des cases pour une meilleure visualisation
+- [ ] Prévoir un build pour d'autres plateformes
+
